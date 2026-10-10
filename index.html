@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Text Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101116;color:#fff;font-family:Arial,sans-serif}
+header{padding:18px;background:#191a22;font-size:22px;font-weight:800}
+main{max-width:800px;margin:auto;padding:16px}
+.panel{background:#1b1c25;padding:15px;border-radius:14px;margin:14px 0}
+label{display:block;margin:12px 0 7px;color:#c7c7d0}
+input,textarea,select,button{
+ width:100%;padding:12px;border-radius:9px;
+ border:1px solid #41424d;background:#252631;
+ color:white;font-size:15px
+}
+textarea{min-height:85px;resize:vertical}
+button{background:#7865ff;border:0;font-weight:bold;margin-top:12px}
+button:disabled{opacity:.5}
+#preview{width:100%;max-width:420px;display:block;margin:auto;
+ background:#000;border-radius:12px}
+.note{font-size:13px;color:#b5b5c4;line-height:1.5}
+</style>
+</head>
+<body>
+<header>AI TEXT STUDIO</header>
+<main>
+ <div class="panel">
+  <h3>1. Upload video</h3>
+  <input id="file" type="file" accept="video/*">
+  <p class="note">Start with a short clip for testing.</p>
+ </div>
+
+ <div class="panel">
+  <h3>2. Preview</h3>
+  <video id="video" playsinline controls
+   style="display:none"></video>
+  <canvas id="preview" width="360" height="640"></canvas>
+  <button id="play">Play / Pause</button>
+ </div>
+
+ <div class="panel">
+  <h3>3. Subtitle design</h3>
+  <label>Caption text</label>
+  <textarea id="caption">THIS IS YOUR MOMENT</textarea>
+
+  <label>Text style</label>
+  <select id="style">
+   <option value="yellow">Bold Yellow Highlight</option>
+   <option value="green">Neon Green</option>
+   <option value="white">Clean White</option>
+   <option value="red">Cinematic Red</option>
+  </select>
+
+  <label>Text size</label>
+  <input id="size" type="range" min="20" max="46" value="32">
+
+  <label>Vertical position</label>
+  <input id="position" type="range" min="55" max="88" value="76">
+
+  <label>Text outline</label>
+  <input id="outline" type="checkbox" checked>
+  <button id="update">Update preview</button>
+ </div>
+
+ <div class="panel">
+  <h3>4. Export video</h3>
+  <button id="export">Render and export video</button>
+  <p id="status" class="note">
+   Upload a video to begin.
+  </p>
+  <a id="download" style="display:none;color:#b7aaff">
+   Download rendered video
+  </a>
+  <p class="note">
+   This prototype exports WebM where supported, not MP4.
+   Keep the page open while rendering.
+  </p>
+ </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const video = $("video");
+const canvas = $("preview");
+const ctx = canvas.getContext("2d");
+
+let ready = false;
+let rendering = false;
+let animationFrame = 0;
+
+$("file").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  video.src = URL.createObjectURL(file);
+  video.style.display = "block";
+
+  video.onloadedmetadata = () => {
+    ready = true;
+    $("status").textContent =
+      "Video loaded. Customize captions and preview.";
+    draw();
+  };
+});
+
+function getColor(){
+  return ({
+    yellow:"#ffe600",
+    green:"#55ffb0",
+    white:"#ffffff",
+    red:"#ff4949"
+  })[$("style").value];
+}
+
+function draw(){
+  if (!ready) return;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#000";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(vw && vh){
+    const scale=Math.max(
+      canvas.width/vw,canvas.height/vh
+    );
+    const w=vw*scale,h=vh*scale;
+    ctx.drawImage(video,(canvas.width-w)/2,
+      (canvas.height-h)/2,w,h);
+  }
+
+  const words=$("caption").value.trim().split(/\s+/);
+  const size=Number($("size").value);
+  const color=getColor();
+  const y=canvas.height*Number($("position").value)/100;
+
+  ctx.font=`900 ${size}px Arial`;
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.lineJoin="round";
+
+  const maxWidth=canvas.width-26;
+  const lines=[];
+  let line="";
+
+  for(const word of words){
+    const test=line ? line+" "+word : word;
+    if(ctx.measureText(test).width>maxWidth && line){
+      lines.push(line);
+      line=word;
+    }else line=test;
+  }
+  if(line) lines.push(line);
+
+  const lineHeight=size*1.22;
+  const startY=y-(lines.length-1)*lineHeight/2;
+
+  lines.forEach((text,i)=>{
+    const yy=startY+i*lineHeight;
+    ctx.font=`900 ${size}px Arial`;
+    ctx.shadowColor=color;
+    ctx.shadowBlur=5;
+    ctx.fillStyle=color;
+
+    if($("outline").checked){
+      ctx.strokeStyle="#000";
+      ctx.lineWidth=5;
+      ctx.strokeText(text,canvas.width/2,yy,maxWidth);
+    }
+    ctx.fillText(text,canvas.width/2,yy,maxWidth);
+    ctx.shadowBlur=0;
+  });
+}
+
+function loop(){
+  draw();
+  animationFrame=requestAnimationFrame(loop);
+}
+
+$("play").onclick=async()=>{
+  if(!ready)return;
+  if(video.paused) await video.play();
+  else video.pause();
+};
+
+["caption","style","size","position","outline"].forEach(id=>{
+  $(id).addEventListener("input",draw);
+  $(id).addEventListener("change",draw);
+});
+
+$("update").onclick=draw;
+
+video.addEventListener("play",()=>{
+  cancelAnimationFrame(animationFrame);
+  loop();
+});
+video.addEventListener("pause",draw);
+video.addEventListener("seeked",draw);
+
+$("export").onclick=async()=>{
+  if(!ready || rendering)return;
+
+  if(!canvas.captureStream || !window.MediaRecorder){
+    $("status").textContent=
+      "This browser does not support the required recording features.";
+    return;
+  }
+
+  rendering=true;
+  $("export").disabled=true;
+  $("download").style.display="none";
+
+  let recorder;
+  let chunks=[];
+  let audioStream=null;
+  let canvasStream=null;
+
+  try{
+    video.pause();
+    video.currentTime=0;
+    await new Promise(resolve=>{
+      if(video.readyState>=2)resolve();
+      else video.addEventListener("seeked",resolve,{once:true});
+    });
+
+    draw();
+    canvasStream=canvas.captureStream(30);
+
+    if(video.captureStream){
+      audioStream=video.captureStream();
+      audioStream.getAudioTracks().forEach(track=>{
+        canvasStream.addTrack(track);
+      });
+    }
+
+    const mime=MediaRecorder.isTypeSupported(
+      "video/webm;codecs=vp9,opus"
+    ) ? "video/webm;codecs=vp9,opus" : "video/webm";
+
+    recorder=new MediaRecorder(canvasStream,{mimeType:mime});
+
+    recorder.ondataavailable=e=>{
+      if(e.data.size)chunks.push(e.data);
+    };
+
+    recorder.onstop=()=>{
+      const blob=new Blob(chunks,{type:"video/webm"});
+      const url=URL.createObjectURL(blob);
+      const link=$("download");
+      link.href=url;
+      link.download="ai-text-studio.webm";
+      link.textContent="Download rendered video";
+      link.style.display="block";
+      $("status").textContent=
+        "Render finished. Check the downloaded video and audio.";
+      rendering=false;
+      $("export").disabled=false;
+      canvasStream.getTracks().forEach(t=>t.stop());
+      if(audioStream)audioStream.getTracks().forEach(t=>t.stop());
+    };
+
+    recorder.onerror=()=>{
+      $("status").textContent="Recording failed. Try a shorter video.";
+      rendering=false;
+      $("export").disabled=false;
+    };
+
+    recorder.start(500);
+    $("status").textContent="Rendering in real time… keep this page open.";
+    await video.play();
+
+    video.onended=()=>{
+      if(recorder && recorder.state!=="inactive")recorder.stop();
+    };
+
+  }catch(err){
+    if(recorder && recorder.state!=="inactive")recorder.stop();
+    else{
+      rendering=false;
+      $("export").disabled=false;
+      $("status").textContent="Export failed: "+err.message;
+    }
+  }
+};
+</script>
+</body>
+</html>
