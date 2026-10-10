@@ -1,291 +1,113 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Text Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI Text Studio — Auto Editor</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#101116;color:#fff;font-family:Arial,sans-serif}
-header{padding:18px;background:#191a22;font-size:22px;font-weight:800}
-main{max-width:800px;margin:auto;padding:16px}
-.panel{background:#1b1c25;padding:15px;border-radius:14px;margin:14px 0}
-label{display:block;margin:12px 0 7px;color:#c7c7d0}
-input,textarea,select,button{
- width:100%;padding:12px;border-radius:9px;
- border:1px solid #41424d;background:#252631;
- color:white;font-size:15px
-}
-textarea{min-height:85px;resize:vertical}
-button{background:#7865ff;border:0;font-weight:bold;margin-top:12px}
-button:disabled{opacity:.5}
-#preview{width:100%;max-width:420px;display:block;margin:auto;
- background:#000;border-radius:12px}
-.note{font-size:13px;color:#b5b5c4;line-height:1.5}
+:root{--bg:#090b10;--panel:#131722;--panel2:#1b2130;--line:#2a3244;--text:#f5f7fb;--muted:#aab3c5;--accent:#7c5cff;--accent2:#28d7a1;--danger:#ff647c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#17152d 0,#090b10 50%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#0b0d14ed;border-bottom:1px solid var(--line);padding:13px 16px;backdrop-filter:blur(12px)}
+.brand{font-weight:900;letter-spacing:.08em}.brand span{color:#a695ff}.subbrand{font-size:12px;color:var(--muted);margin-top:2px}
+main{max-width:900px;margin:0 auto;padding:14px;display:grid;gap:13px}
+.panel{background:linear-gradient(145deg,#171b27,#11141d);border:1px solid var(--line);border-radius:17px;padding:15px;box-shadow:0 8px 30px #0002}
+h2{font-size:16px;margin:0 0 11px}p{margin:6px 0;color:var(--muted);font-size:13px}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}
+button,.filebtn{border:0;border-radius:11px;padding:12px 14px;background:var(--accent);color:white;font-weight:750;font-size:14px;cursor:pointer}
+button.secondary{background:#262d3d;border:1px solid #394258}button.green{background:#087f62}button:disabled{opacity:.42;cursor:not-allowed}
+input[type=file]{max-width:100%;font-size:12px;color:var(--muted)}input[type=range]{width:100%;accent-color:var(--accent)}
+select,textarea,input[type=text]{background:#0b0e15;color:var(--text);border:1px solid #343d50;border-radius:9px;padding:10px;width:100%;font:inherit}
+textarea{min-height:95px;resize:vertical}
+.previewWrap{position:relative;background:#030407;border-radius:12px;overflow:hidden;display:flex;justify-content:center;min-height:160px}
+video{display:block;max-width:100%;max-height:62vh;width:auto;height:auto;background:#000}
+#empty{padding:42px 15px;text-align:center;color:var(--muted)}
+#captionPreview{position:absolute;left:5%;right:5%;bottom:10%;text-align:center;pointer-events:none;font-weight:1000;line-height:1.15;font-size:clamp(20px,5vw,36px);color:#ffe65b;text-shadow:-2px -2px 0 #111,2px -2px 0 #111,-2px 2px 0 #111,2px 2px 0 #111,0 4px 12px #000;overflow-wrap:anywhere}
+#status{border-radius:10px;background:#0c1018;padding:10px;color:#c7cde0;font-size:13px;white-space:pre-wrap}
+.progress{height:7px;border-radius:20px;background:#262d3d;overflow:hidden;margin-top:8px}.progress div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.captionList{display:grid;gap:8px;margin-top:10px}.captionItem{display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:start;background:#0c1018;border:1px solid var(--line);padding:8px;border-radius:10px}.captionItem small{color:var(--muted)}.captionItem textarea{min-height:55px}
+.note{border-left:3px solid #f0bd4e;padding:8px 10px;background:#211d12;border-radius:4px 9px 9px 4px;color:#e8d6a7;font-size:12px}
+footer{text-align:center;padding:4px 14px 24px;color:var(--muted);font-size:12px}
+@media(min-width:720px){main{grid-template-columns:1fr 1fr;align-items:start}.wide{grid-column:1/-1}.previewWrap video{max-height:520px}}
+@media(max-width:420px){main{padding:9px}.panel{padding:12px}.grid2{grid-template-columns:1fr}.captionItem{grid-template-columns:65px 1fr}}
 </style>
 </head>
 <body>
-<header>AI TEXT STUDIO</header>
+<header><div class="brand">AI <span>TEXT</span> STUDIO</div><div class="subbrand">Automatic subtitles • smart styling • local preview</div></header>
 <main>
- <div class="panel">
-  <h3>1. Upload video</h3>
-  <input id="file" type="file" accept="video/*">
-  <p class="note">Start with a short clip for testing.</p>
- </div>
+<section class="panel wide">
+<h2>1. Upload your video</h2>
+<input id="videoFile" type="file" accept="video/*">
+<p>Best for testing: a short clip (10–30 seconds). Speech recognition downloads a model on first use and captures the video's audio in real time, so transcription takes at least as long as the clip.</p>
+<div class="note">Honest limitation: transcription runs in your browser using a downloadable AI model. It needs internet for the first model download and may fail on some phones. This version exports WebM where supported, not guaranteed MP4.</div>
+</section>
 
- <div class="panel">
-  <h3>2. Preview</h3>
-  <video id="video" playsinline controls
-   style="display:none"></video>
-  <canvas id="preview" width="360" height="640"></canvas>
-  <button id="play">Play / Pause</button>
- </div>
+<section class="panel">
+<h2>2. Preview</h2>
+<div class="previewWrap" id="previewWrap">
+<div id="empty">Upload a video to begin</div>
+<video id="video" controls playsinline hidden></video>
+<div id="captionPreview" hidden></div>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="playBtn" class="secondary" disabled>Play / Pause</button>
+<button id="autoBtn" disabled>✨ Auto subtitle & style</button>
+</div>
+<div id="status" style="margin-top:10px">Ready. Upload a video first.</div>
+<div class="progress"><div id="progressBar"></div></div>
+</section>
 
- <div class="panel">
-  <h3>3. Subtitle design</h3>
-  <label>Caption text</label>
-  <textarea id="caption">THIS IS YOUR MOMENT</textarea>
+<section class="panel">
+<h2>3. Automatic style</h2>
+<div class="grid2">
+<div class="field"><label>Caption theme</label><select id="theme"><option value="smart">AI choose per line</option><option value="yellow">Creator yellow</option><option value="green">Neon green</option><option value="white">Clean white</option><option value="pink">Punch pink</option></select></div>
+<div class="field"><label>Caption position</label><select id="position"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select></div>
+<div class="field"><label>Text size</label><input id="fontSize" type="range" min="18" max="46" value="32"></div>
+<div class="field"><label>Outline strength</label><input id="outline" type="range" min="1" max="5" value="3"></div>
+</div>
+<p>AI chooses a highlight colour from each line’s wording. You can change the overall look, but editing controls are optional.</p>
+</section>
 
-  <label>Text style</label>
-  <select id="style">
-   <option value="yellow">Bold Yellow Highlight</option>
-   <option value="green">Neon Green</option>
-   <option value="white">Clean White</option>
-   <option value="red">Cinematic Red</option>
-  </select>
-
-  <label>Text size</label>
-  <input id="size" type="range" min="20" max="46" value="32">
-
-  <label>Vertical position</label>
-  <input id="position" type="range" min="55" max="88" value="76">
-
-  <label>Text outline</label>
-  <input id="outline" type="checkbox" checked>
-  <button id="update">Update preview</button>
- </div>
-
- <div class="panel">
-  <h3>4. Export video</h3>
-  <button id="export">Render and export video</button>
-  <p id="status" class="note">
-   Upload a video to begin.
-  </p>
-  <a id="download" style="display:none;color:#b7aaff">
-   Download rendered video
-  </a>
-  <p class="note">
-   This prototype exports WebM where supported, not MP4.
-   Keep the page open while rendering.
-  </p>
- </div>
+<section class="panel wide">
+<h2>4. Captions generated by AI</h2>
+<p>After transcription, caption lines and timestamps appear here. You can optionally correct any recognition mistakes.</p>
+<div class="row">
+<button id="exportBtn" class="green" disabled>Export captioned video (WebM)</button>
+<button id="srtBtn" class="secondary" disabled>Download subtitles (.SRT)</button>
+</div>
+<div class="captionList" id="captionList"></div>
+</section>
 </main>
+<footer>AI Text Studio prototype • video stays in your browser except the AI model download</footer>
 
-<script>
+<script type="module">
 const $ = id => document.getElementById(id);
-const video = $("video");
-const canvas = $("preview");
-const ctx = canvas.getContext("2d");
-
-let ready = false;
-let rendering = false;
-let animationFrame = 0;
-
-$("file").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  video.src = URL.createObjectURL(file);
-  video.style.display = "block";
-
-  video.onloadedmetadata = () => {
-    ready = true;
-    $("status").textContent =
-      "Video loaded. Customize captions and preview.";
-    draw();
-  };
-});
-
-function getColor(){
-  return ({
-    yellow:"#ffe600",
-    green:"#55ffb0",
-    white:"#ffffff",
-    red:"#ff4949"
-  })[$("style").value];
-}
-
-function draw(){
-  if (!ready) return;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#000";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  const vw=video.videoWidth, vh=video.videoHeight;
-  if(vw && vh){
-    const scale=Math.max(
-      canvas.width/vw,canvas.height/vh
-    );
-    const w=vw*scale,h=vh*scale;
-    ctx.drawImage(video,(canvas.width-w)/2,
-      (canvas.height-h)/2,w,h);
-  }
-
-  const words=$("caption").value.trim().split(/\s+/);
-  const size=Number($("size").value);
-  const color=getColor();
-  const y=canvas.height*Number($("position").value)/100;
-
-  ctx.font=`900 ${size}px Arial`;
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.lineJoin="round";
-
-  const maxWidth=canvas.width-26;
-  const lines=[];
-  let line="";
-
-  for(const word of words){
-    const test=line ? line+" "+word : word;
-    if(ctx.measureText(test).width>maxWidth && line){
-      lines.push(line);
-      line=word;
-    }else line=test;
-  }
-  if(line) lines.push(line);
-
-  const lineHeight=size*1.22;
-  const startY=y-(lines.length-1)*lineHeight/2;
-
-  lines.forEach((text,i)=>{
-    const yy=startY+i*lineHeight;
-    ctx.font=`900 ${size}px Arial`;
-    ctx.shadowColor=color;
-    ctx.shadowBlur=5;
-    ctx.fillStyle=color;
-
-    if($("outline").checked){
-      ctx.strokeStyle="#000";
-      ctx.lineWidth=5;
-      ctx.strokeText(text,canvas.width/2,yy,maxWidth);
-    }
-    ctx.fillText(text,canvas.width/2,yy,maxWidth);
-    ctx.shadowBlur=0;
-  });
-}
-
-function loop(){
-  draw();
-  animationFrame=requestAnimationFrame(loop);
-}
-
-$("play").onclick=async()=>{
-  if(!ready)return;
-  if(video.paused) await video.play();
-  else video.pause();
-};
-
-["caption","style","size","position","outline"].forEach(id=>{
-  $(id).addEventListener("input",draw);
-  $(id).addEventListener("change",draw);
-});
-
-$("update").onclick=draw;
-
-video.addEventListener("play",()=>{
-  cancelAnimationFrame(animationFrame);
-  loop();
-});
-video.addEventListener("pause",draw);
-video.addEventListener("seeked",draw);
-
-$("export").onclick=async()=>{
-  if(!ready || rendering)return;
-
-  if(!canvas.captureStream || !window.MediaRecorder){
-    $("status").textContent=
-      "This browser does not support the required recording features.";
-    return;
-  }
-
-  rendering=true;
-  $("export").disabled=true;
-  $("download").style.display="none";
-
-  let recorder;
-  let chunks=[];
-  let audioStream=null;
-  let canvasStream=null;
-
-  try{
-    video.pause();
-    video.currentTime=0;
-    await new Promise(resolve=>{
-      if(video.readyState>=2)resolve();
-      else video.addEventListener("seeked",resolve,{once:true});
-    });
-
-    draw();
-    canvasStream=canvas.captureStream(30);
-
-    if(video.captureStream){
-      audioStream=video.captureStream();
-      audioStream.getAudioTracks().forEach(track=>{
-        canvasStream.addTrack(track);
-      });
-    }
-
-    const mime=MediaRecorder.isTypeSupported(
-      "video/webm;codecs=vp9,opus"
-    ) ? "video/webm;codecs=vp9,opus" : "video/webm";
-
-    recorder=new MediaRecorder(canvasStream,{mimeType:mime});
-
-    recorder.ondataavailable=e=>{
-      if(e.data.size)chunks.push(e.data);
-    };
-
-    recorder.onstop=()=>{
-      const blob=new Blob(chunks,{type:"video/webm"});
-      const url=URL.createObjectURL(blob);
-      const link=$("download");
-      link.href=url;
-      link.download="ai-text-studio.webm";
-      link.textContent="Download rendered video";
-      link.style.display="block";
-      $("status").textContent=
-        "Render finished. Check the downloaded video and audio.";
-      rendering=false;
-      $("export").disabled=false;
-      canvasStream.getTracks().forEach(t=>t.stop());
-      if(audioStream)audioStream.getTracks().forEach(t=>t.stop());
-    };
-
-    recorder.onerror=()=>{
-      $("status").textContent="Recording failed. Try a shorter video.";
-      rendering=false;
-      $("export").disabled=false;
-    };
-
-    recorder.start(500);
-    $("status").textContent="Rendering in real time… keep this page open.";
-    await video.play();
-
-    video.onended=()=>{
-      if(recorder && recorder.state!=="inactive")recorder.stop();
-    };
-
-  }catch(err){
-    if(recorder && recorder.state!=="inactive")recorder.stop();
-    else{
-      rendering=false;
-      $("export").disabled=false;
-      $("status").textContent="Export failed: "+err.message;
-    }
-  }
-};
+const fileInput=$('videoFile'), video=$('video'), empty=$('empty'), captionPreview=$('captionPreview');
+const autoBtn=$('autoBtn'), exportBtn=$('exportBtn'), srtBtn=$('srtBtn'), statusBox=$('status'), progressBar=$('progressBar');
+let videoUrl=null, captions=[], asr=null, busy=false, audioCtx=null, mediaSource=null;
+function status(s,p){statusBox.textContent=s;if(p!==undefined)progressBar.style.width=Math.max(0,Math.min(100,p))+'%'}
+function fmtSrt(sec){sec=Math.max(0,sec||0);let ms=Math.floor((sec%1)*1000);let t=Math.floor(sec);let h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=t%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function lineColor(text,index){const theme=$('theme').value;if(theme==='yellow')return '#ffe65b';if(theme==='green')return '#42ffb0';if(theme==='white')return '#ffffff';if(theme==='pink')return '#ff72c6';const t=text.toLowerCase();if(/love|amazing|wow|great|best|win| जीत|शानदार|कमाल|वाह/.test(t))return '#ffe65b';if(/no|never|stop|danger|गलत|नहीं|खतरा|रुको/.test(t))return '#ff637d';if(/why|how|क्यों|कैसे|क्या/.test(t))return '#65d8ff';return index%3===0?'#ffe65b':index%3===1?'#ffffff':'#7dffbf'}
+function activeCaption(){if(!captions.length)return null;const t=video.currentTime;return captions.find(c=>t>=c.start&&t<c.end)||null}
+function renderPreview(){const c=activeCaption();if(!c||video.hidden){captionPreview.hidden=true;return}captionPreview.hidden=false;captionPreview.textContent=c.text;captionPreview.style.color=lineColor(c.text,c.index);captionPreview.style.fontSize=$('fontSize').value+'px';captionPreview.style.textShadow=`-${$('outline').value/1.5}px -${$('outline').value/1.5}px 0 #050505,${$('outline').value/1.5}px -${$('outline').value/1.5}px 0 #050505,-${$('outline').value/1.5}px ${$('outline').value/1.5}px 0 #050505,${$('outline').value/1.5}px ${$('outline').value/1.5}px 0 #050505,0 4px 12px #000`;captionPreview.style.bottom=$('position').value==='bottom'?'10%':$('position').value==='middle'?'43%':'auto';captionPreview.style.top=$('position').value==='top'?'10%':'auto'}
+function drawList(){const box=$('captionList');box.innerHTML='';captions.forEach((c,i)=>{const item=document.createElement('div');item.className='captionItem';const time=document.createElement('div');time.innerHTML=`<small>${c.start.toFixed(1)}s – ${c.end.toFixed(1)}s</small>`;const ta=document.createElement('textarea');ta.value=c.text;ta.setAttribute('aria-label',`Caption ${i+1}`);ta.addEventListener('input',()=>{c.text=ta.value;renderPreview()});item.append(time,ta);box.append(item)});const ok=captions.length>0;exportBtn.disabled=!ok;srtBtn.disabled=!ok}
+fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];if(!f)return;if(!f.type.startsWith('video/')){status('Please choose a video file.');return}if(videoUrl)URL.revokeObjectURL(videoUrl);videoUrl=URL.createObjectURL(f);video.src=videoUrl;video.hidden=false;empty.hidden=true;captionPreview.hidden=true;captions=[];drawList();autoBtn.disabled=false;status(`Loaded: ${f.name}\nDuration: will be detected when video metadata loads.`);video.onloadedmetadata=()=>status(`Video ready • ${video.duration.toFixed(1)} seconds\nTap “Auto subtitle & style”.`);});
+$('playBtn').addEventListener('click',()=>video.paused?video.play():video.pause());
+video.addEventListener('timeupdate',renderPreview);['theme','position','fontSize','outline'].forEach(id=>$(id).addEventListener('input',renderPreview));
+function makeChunks(text,chunkSeconds=3){const words=text.trim().split(/\s+/);const chunks=[];for(let i=0;i<words.length;i+=6)chunks.push(words.slice(i,i+6).join(' '));const dur=video.duration||chunks.length*2;return chunks.map((text,i)=>({start:i*dur/chunks.length,end:Math.min(dur,(i+1)*dur/chunks.length),text,index:i}))}
+async function loadASR(){if(asr)return asr;status('Loading speech AI library…',5);const mod=await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');const env=mod.env;env.allowLocalModels=false;env.useBrowserCache=true;status('Downloading/loading Whisper tiny model. First run may take time and use substantial data…',10);asr=await mod.pipeline('automatic-speech-recognition','Xenova/whisper-tiny',{progress_callback:info=>{if(info.status==='progress'&&info.total)status(`Downloading AI model: ${info.file||''}`,10+Math.round(info.progress*0.35))}});return asr}
+async function extractAudio(){if(!video.captureStream)throw new Error('This browser cannot capture video audio for transcription. Try a recent Chrome browser.');const stream=video.captureStream();const tracks=stream.getAudioTracks();if(!tracks.length){stream.getTracks().forEach(t=>t.stop());throw new Error('No audio track found in this video.');}const audioStream=new MediaStream(tracks);const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t));if(!mime){stream.getTracks().forEach(t=>t.stop());throw new Error('This browser cannot record audio for transcription.');}const rec=new MediaRecorder(audioStream,{mimeType:mime});const parts=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};const done=new Promise((resolve,reject)=>{rec.onstop=()=>resolve(new Blob(parts,{type:mime}));rec.onerror=()=>reject(new Error('Audio capture failed.'));});const oldTime=video.currentTime,wasPaused=video.paused;video.pause();video.currentTime=0;await new Promise(resolve=>{if(video.readyState>=2)resolve();else video.onseeked=resolve});rec.start(250);status('Capturing audio from the video in real time. Keep the page open…',25);await video.play();await new Promise(resolve=>{video.onended=resolve;video.onerror=()=>resolve()});if(rec.state!=='inactive')rec.stop();const blob=await done;stream.getTracks().forEach(t=>t.stop());video.pause();video.currentTime=oldTime;if(!wasPaused)video.play().catch(()=>{});const ctx=new (window.AudioContext||window.webkitAudioContext)();const decoded=await ctx.decodeAudioData(await blob.arrayBuffer());const ch=decoded.getChannelData(0);const targetRate=16000,ratio=decoded.sampleRate/targetRate,len=Math.floor(ch.length/ratio),out=new Float32Array(len);for(let i=0;i<len;i++)out[i]=ch[Math.floor(i*ratio)];await ctx.close();return {audio:out,sample_rate:targetRate}}
+autoBtn.addEventListener('click',async()=>{if(busy)return;busy=true;autoBtn.disabled=true;try{if(!videoUrl)throw new Error('Upload a video first.');if(video.duration>120)throw new Error('For this phone-friendly prototype, use a video of 2 minutes or less.');if(!('AudioContext'in window||'webkitAudioContext'in window))throw new Error('This browser does not support audio processing.');status('Preparing audio from video…',5);const audio=await extractAudio();const pipe=await loadASR();status('AI is transcribing the speech. Keep this page open…',55);const result=await pipe(audio.audio,{sampling_rate:audio.sample_rate,return_timestamps:true,chunk_length_s:20,stride_length_s:3});const chunks=result.chunks||[];if(chunks.length){captions=chunks.map((x,i)=>({start:Number(x.timestamp?.[0]??0),end:Number(x.timestamp?.[1]??Math.min(video.duration,(i+1)*2)),text:(x.text||'').trim(),index:i})).filter(c=>c.text&&Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start);if(!captions.length)captions=makeChunks(result.text||'');}else{captions=makeChunks(result.text||'');}if(!captions.length)throw new Error('No speech captions were detected. Try a clearer clip with audible speech.');drawList();renderPreview();status(`Done! Generated ${captions.length} caption segments.\nReview any mistakes, then export.`,100)}catch(e){console.error(e);status('Could not finish automatic transcription.\n'+(e?.message||String(e))+'\nTry a shorter clip, stable internet, and a modern browser.');}finally{busy=false;autoBtn.disabled=!videoUrl}}
+);
+function srtText(){return captions.map((c,i)=>`${i+1}\n${fmtSrt(c.start)} --> ${fmtSrt(c.end)}\n${c.text}`).join('\n\n')}
+srtBtn.addEventListener('click',()=>{const blob=new Blob([srtText()],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ai-text-studio-subtitles.srt';a.click();URL.revokeObjectURL(a.href)});
+function wrapText(ctx,text,maxWidth){const words=text.split(/\s+/),lines=[];let line='';for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=w}else line=test}if(line)lines.push(line);return lines}
+function drawFrame(ctx,w,h){ctx.clearRect(0,0,w,h);const vw=video.videoWidth,vh=video.videoHeight;if(!vw||!vh)return;const scale=Math.min(w/vw,h/vh),dw=vw*scale,dh=vh*scale;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);ctx.drawImage(video,(w-dw)/2,(h-dh)/2,dw,dh);const c=activeCaption();if(!c)return;const size=Math.max(18,Number($('fontSize').value)*w/Math.max(320,video.clientWidth));ctx.font=`900 ${size}px system-ui, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';const maxW=dw*.9,lines=wrapText(ctx,c.text,maxW);const lineH=size*1.18;let y=$('position').value==='top'?(h-dh)/2+dh*.1+lineH/2:$('position').value==='middle'?h/2-(lines.length-1)*lineH/2:(h+dh)/2-dh*.1-(lines.length-1)*lineH-lineH/2;ctx.lineJoin='round';ctx.lineWidth=Number($('outline').value)*2.2;ctx.strokeStyle='#050505';ctx.fillStyle=lineColor(c.text,c.index);for(const line of lines){ctx.strokeText(line,w/2,y,maxW);ctx.fillText(line,w/2,y,maxW);y+=lineH}}
+exportBtn.addEventListener('click',async()=>{if(!captions.length||!video.videoWidth)return;if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){status('This browser cannot record canvas video. Use a recent Chrome browser.');return}exportBtn.disabled=true;status('Preparing export…',0);const canvas=document.createElement('canvas');const maxWidth=720;const scale=Math.min(1,maxWidth/video.videoWidth);canvas.width=Math.max(2,Math.floor(video.videoWidth*scale/2)*2);canvas.height=Math.max(2,Math.floor(video.videoHeight*scale/2)*2);const ctx=canvas.getContext('2d');const stream=canvas.captureStream(30);let audioDest=null;try{const AC=window.AudioContext||window.webkitAudioContext;const actx=new AC();const source=actx.createMediaElementSource(video);audioDest=actx.createMediaStreamDestination();source.connect(audioDest);source.connect(actx.destination);audioDest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));await actx.resume();}catch(e){console.warn('Audio capture unavailable',e)}
+let mime='video/webm;codecs=vp9,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm;codecs=vp8,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';let rec;try{rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4500000})}catch(e){status('Recording could not start: '+e.message);exportBtn.disabled=false;return}
+const parts=[];rec.ondataavailable=e=>{if(e.data?.size)parts.push(e.data)};rec.onerror=e=>status('Export error: '+(e.error?.message||'unknown'));rec.onstop=()=>{const blob=new Blob(parts,{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ai-text-studio-edited.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);stream.getTracks().forEach(t=>t.stop());if(audioCtx)audioCtx.close().catch(()=>{});status(`Export complete (${(blob.size/1024/1024).toFixed(1)} MB). Saved as WebM.`,100);exportBtn.disabled=false};
+const oldTime=video.currentTime;video.pause();video.currentTime=0;await new Promise(resolve=>{if(video.readyState>=2)resolve();else video.onseeked=resolve});rec.start(250);let raf;const draw=()=>{drawFrame(ctx,canvas.width,canvas.height);if(!video.paused&&!video.ended)raf=requestAnimationFrame(draw)};draw();video.play().catch(()=>{});const duration=video.duration;const timer=setInterval(()=>{status(`Recording edited video… ${Math.min(100,Math.round(video.currentTime/duration*100))}%`,video.currentTime/duration*100);if(video.ended||video.currentTime>=duration){clearInterval(timer);cancelAnimationFrame(raf);video.pause();rec.stop();video.currentTime=oldTime}},300);});
 </script>
 </body>
 </html>
