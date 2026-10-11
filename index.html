@@ -80,7 +80,7 @@ footer{text-align:center;padding:4px 14px 24px;color:var(--muted);font-size:12px
 </main>
 <footer>AI Text Studio prototype • video stays in your browser except the AI model download</footer>
 
-<script type="module">
+<script>
 const $ = id => document.getElementById(id);
 const fileInput=$('videoFile'), video=$('video'), empty=$('empty'), captionPreview=$('captionPreview');
 const autoBtn=$('autoBtn'), exportBtn=$('exportBtn'), srtBtn=$('srtBtn'), statusBox=$('status'), progressBar=$('progressBar');
@@ -97,19 +97,21 @@ fileInput.addEventListener('change',()=>{
   if(!f){status('No video selected. Tap Choose file and select a video from Gallery or Files.');return;}
   const ext=(f.name.split('.').pop()||'').toLowerCase();
   const videoExts=['mp4','m4v','mov','webm','3gp','3gpp','mkv','avi','mpeg','mpg','ogv','ts','mts'];
-  const looksLikeVideo=(f.type||'').toLowerCase().startsWith('video/')||videoExts.includes(ext);
+  const mime=(f.type||'').toLowerCase();
+  const looksLikeVideo=mime.startsWith('video/')||videoExts.includes(ext);
   if(!looksLikeVideo){status(`Selected file: ${f.name}\nThe browser reports type “${f.type||'unknown'}”. Please choose a video file, preferably MP4.`);return;}
   // Clear the previous media before assigning the new local file.
   if(videoUrl){URL.revokeObjectURL(videoUrl);videoUrl=null;}
   video.pause();video.removeAttribute('src');video.load();
   captions=[];drawList();captionPreview.hidden=true;autoBtn.disabled=true;
-  video.hidden=false;empty.hidden=true;
-  status(`Selected: ${f.name}\nSize: ${(f.size/1024/1024).toFixed(1)} MB\nLoading preview…`);
+  video.hidden=false;video.style.display='block';empty.hidden=true;
+  video.setAttribute('controls','');video.setAttribute('playsinline','');video.setAttribute('preload','auto');
+  status(`Video selected: ${f.name}\nSize: ${(f.size/1024/1024).toFixed(1)} MB\nLoading preview…`);
   video.onloadedmetadata=()=>{
     status(`Video opened • ${Number.isFinite(video.duration)?video.duration.toFixed(1)+' seconds':'duration unknown'}\nPress ▶ on the video to check playback.`);
   };
   video.onloadeddata=()=>{
-    status(`Video preview ready ✓\n${f.name}\nNow you can play it or tap “Auto subtitle & style”.`);
+    status(`Video preview ready ✓\n${f.name}\nTap ▶ on the video to play. You can now use Auto subtitle & style.`);
     autoBtn.disabled=false;
   };
   video.onerror=()=>{
