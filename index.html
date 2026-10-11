@@ -94,34 +94,46 @@ function renderPreview(){const c=activeCaption();if(!c||video.hidden){captionPre
 function drawList(){const box=$('captionList');box.innerHTML='';captions.forEach((c,i)=>{const item=document.createElement('div');item.className='captionItem';const time=document.createElement('div');time.innerHTML=`<small>${c.start.toFixed(1)}s – ${c.end.toFixed(1)}s</small>`;const ta=document.createElement('textarea');ta.value=c.text;ta.setAttribute('aria-label',`Caption ${i+1}`);ta.addEventListener('input',()=>{c.text=ta.value;renderPreview()});item.append(time,ta);box.append(item)});const ok=captions.length>0;exportBtn.disabled=!ok;srtBtn.disabled=!ok}
 fileInput.addEventListener('change',()=>{
   const f=fileInput.files && fileInput.files[0];
-  if(!f){status('No video selected. Tap Choose file and select a video from Gallery or Files.');return;}
-  const ext=(f.name.split('.').pop()||'').toLowerCase();
-  const videoExts=['mp4','m4v','mov','webm','3gp','3gpp','mkv','avi','mpeg','mpg','ogv','ts','mts'];
-  const mime=(f.type||'').toLowerCase();
-  const looksLikeVideo=mime.startsWith('video/')||videoExts.includes(ext);
-  if(!looksLikeVideo){status(`Selected file: ${f.name}\nThe browser reports type “${f.type||'unknown'}”. Please choose a video file, preferably MP4.`);return;}
-  // Clear the previous media before assigning the new local file.
+  if(!f){status('No file selected. Please choose a video again.');return;}
+  // Android Gallery/Files may provide an empty or unusual MIME type. Do not reject
+  // a selected file based only on its MIME type or extension; try loading it.
   if(videoUrl){URL.revokeObjectURL(videoUrl);videoUrl=null;}
-  video.pause();video.removeAttribute('src');video.load();
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
   captions=[];drawList();captionPreview.hidden=true;autoBtn.disabled=true;
-  video.hidden=false;video.style.display='block';empty.hidden=true;
-  video.setAttribute('controls','');video.setAttribute('playsinline','');video.setAttribute('preload','auto');
-  status(`Video selected: ${f.name}\nSize: ${(f.size/1024/1024).toFixed(1)} MB\nLoading preview…`);
-  video.onloadedmetadata=()=>{
-    status(`Video opened • ${Number.isFinite(video.duration)?video.duration.toFixed(1)+' seconds':'duration unknown'}\nPress ▶ on the video to check playback.`);
-  };
-  video.onloadeddata=()=>{
-    status(`Video preview ready ✓\n${f.name}\nTap ▶ on the video to play. You can now use Auto subtitle & style.`);
+  video.hidden=false;video.style.display='block';video.style.width='100%';video.style.maxWidth='100%';
+  empty.hidden=true;
+  video.controls=true;video.playsInline=true;video.preload='auto';
+  status(`Selected: ${f.name || 'video file'}\nType: ${f.type || 'unknown'} • Size: ${(f.size/1024/1024).toFixed(2)} MB\nTrying to load preview…`);
+  let settled=false;
+  const success=()=>{
+    if(settled)return; settled=true;
+    status(`VIDEO LOADED ✓\n${f.name || 'Selected file'}\nDuration: ${Number.isFinite(video.duration)?video.duration.toFixed(1)+' seconds':'unknown'}\nTap ▶ on the video to play.`);
     autoBtn.disabled=false;
+    $('playBtn').disabled=false;
   };
-  video.onerror=()=>{
+  const failure=()=>{
+    if(settled)return; settled=true;
     const code=video.error?.code;
-    const reason=code===2?'The browser could not read the selected file.':code===3?'The video codec/format is not supported by this browser.':code===4?'The file type or video format is not supported.':'The browser could not decode this video.';
-    status(`Video selected, but preview failed.\n${reason}\nFile type: ${f.type||'not reported'}\nTry a short MP4 video encoded as H.264 with AAC audio. If another MP4 works, this file uses an unsupported format/codec.`);
+    const reason=code===2?'The browser could not read this file.':code===3?'The video codec is not supported by this browser.':code===4?'The browser cannot play this file format.':'The browser could not load the video.';
+    status(`FILE SELECTED, BUT VIDEO DID NOT DECODE.\n${reason}\nName: ${f.name || 'unknown'}\nType: ${f.type || 'unknown'}\nSize: ${(f.size/1024/1024).toFixed(2)} MB\nTry another MP4 video. If all videos fail, send me this exact message.`);
     autoBtn.disabled=true;
   };
-  try{videoUrl=URL.createObjectURL(f);video.src=videoUrl;video.load();}
-  catch(err){status(`Could not open the selected file: ${err?.message||err}\nTry selecting it again from Gallery or Files.`);autoBtn.disabled=true;}
+  video.addEventListener('loadedmetadata',success,{once:true});
+  video.addEventListener('loadeddata',success,{once:true});
+  video.addEventListener('canplay',success,{once:true});
+  video.addEventListener('error',failure,{once:true});
+  try{
+    videoUrl=URL.createObjectURL(f);
+    video.src=videoUrl;
+    video.load();
+    // Some Android browsers need a moment before reporting decoder failure.
+    setTimeout(()=>{if(!settled && video.readyState>=2)success();},1500);
+  }catch(err){
+    status(`Could not open selected file: ${err?.message||String(err)}`);
+    autoBtn.disabled=true;
+  }
 });
 $('playBtn').addEventListener('click',()=>video.paused?video.play():video.pause());
 video.addEventListener('timeupdate',renderPreview);['theme','position','fontSize','outline'].forEach(id=>$(id).addEventListener('input',renderPreview));
